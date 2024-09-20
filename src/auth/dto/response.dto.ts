@@ -5,7 +5,7 @@ export class ResponseDto {
   data: any;
   statusCode: HttpStatus;
 
-  constructor(message: string, statusCode: HttpStatus, data?: any) {
+  constructor(message: string, statusCode?: HttpStatus, data?: any) {
     this.message = message;
     this.statusCode = statusCode;
     this.data = data;

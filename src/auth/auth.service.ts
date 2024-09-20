@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   HttpStatus,
   Injectable,
@@ -10,10 +11,11 @@ import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
 import { AuthCredentialsDto } from './dto/auth-credentials.dto';
 import { ResponseDto } from './dto/response.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { UserDto } from './dto/user.dto';
+import { User } from './entities/user.entity';
 import { AccountStatus } from './enums/account-status.enum';
 import { JwtPayload } from './jwt-payload.interface';
-import { User } from './user.entity';
 
 @Injectable()
 export class AuthService {
@@ -22,6 +24,10 @@ export class AuthService {
     private usersRepository: Repository<User>,
     private jwtService: JwtService,
   ) {}
+
+  async getAllUsers(): Promise<User[]> {
+    return this.usersRepository.find();
+  }
 
   async signUp(userDto: UserDto): Promise<ResponseDto> {
     const {
@@ -76,6 +82,11 @@ export class AuthService {
       ],
     });
 
+    // Check if this account is verified or not
+    if (user && user.status == AccountStatus.Pending) {
+      throw new BadRequestException("This account hasn't verified yet");
+    }
+
     if (user && (await bcrypt.compare(password, user.password))) {
       const payload: JwtPayload = {
         email: user.email,
@@ -90,5 +101,35 @@ export class AuthService {
         'Login failed. Please check your login credentials.',
       );
     }
+  }
+
+  async verifyByEmail(userId: string): Promise<ResponseDto> {
+    console.log(userId);
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user || user.status != AccountStatus.Pending) {
+      throw new BadRequestException();
+    }
+
+    user.status = AccountStatus.Verified;
+    await this.usersRepository.save(user);
+    return new ResponseDto('Verified email successfully.', HttpStatus.OK);
+  }
+
+  async updateProfile(
+    userId: string,
+    updateUserDto: UpdateUserDto,
+  ): Promise<ResponseDto> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) throw new BadRequestException();
+
+    for (const field in updateUserDto) {
+      if (updateUserDto[field]) {
+        user[field] = updateUserDto[field];
+      }
+    }
+
+    await this.usersRepository.save(user);
+
+    return new ResponseDto('Update profile successfully.');
   }
 }
