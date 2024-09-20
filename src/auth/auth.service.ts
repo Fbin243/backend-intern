@@ -104,7 +104,6 @@ export class AuthService {
   }
 
   async verifyByEmail(userId: string): Promise<ResponseDto> {
-    console.log(userId);
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user || user.status != AccountStatus.Pending) {
       throw new BadRequestException();
