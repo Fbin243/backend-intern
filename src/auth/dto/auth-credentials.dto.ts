@@ -1,4 +1,10 @@
+import { IsNotEmpty, IsString } from 'class-validator';
+
 export class AuthCredentialsDto {
-  emailOrPhone: string;
+  @IsNotEmpty()
+  emailOrPhoneNumber: string;
+
+  @IsNotEmpty()
+  @IsString()
   password: string;
 }
